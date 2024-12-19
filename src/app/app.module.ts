@@ -16,12 +16,21 @@ import en from '@angular/common/locales/en';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { PdfViewerComponent } from './pdf-viewer/pdf-viewer.component';
+import { NgxExtendedPdfViewerModule } from 'ngx-extended-pdf-viewer';
 
 registerLocaleData(en);
 
 @NgModule({
-  declarations: [AppComponent],
-  imports: [BrowserModule, AppRoutingModule, FormsModule, NgbModule],
+  declarations: [AppComponent, PdfViewerComponent],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    FormsModule,
+    NgbModule,
+    ReactiveFormsModule,
+    NgxExtendedPdfViewerModule,
+  ],
   providers: [
     importProvidersFrom(HttpClientModule),
     { provide: NZ_I18N, useValue: en_US },

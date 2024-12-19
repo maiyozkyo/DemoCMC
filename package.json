@@ -21,7 +21,9 @@
     "@ng-bootstrap/ng-bootstrap": "^17.0.1",
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.3",
+    "konva": "^9.3.16",
     "ng-zorro-antd": "^18.2.1",
+    "ngx-extended-pdf-viewer": "^22.1.0-alpha.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.10"

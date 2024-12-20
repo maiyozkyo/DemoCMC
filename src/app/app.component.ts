@@ -62,8 +62,4 @@ export class AppComponent implements OnInit {
   onFindCardID() {
     this.step = 4;
   }
-
-  onPdfPagesLoaded(evt: any) {
-    console.log('onPdfPagesLoaded', evt.source);
-  }
 }

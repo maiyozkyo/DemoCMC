@@ -14,15 +14,34 @@
     #signatureInput
     (change)="onAddSignatureImage($event)"
   />
-  <div class="btn btn-primary" (click)="signatureInput.click()">
+  <button
+    class="btn btn-primary"
+    (click)="signatureInput.click()"
+    [disabled]="!isPdfLoaded"
+  >
     Thêm chữ ký
-  </div>
-  <div class="btn btn-success ms-2 me-2" (click)="sendToSign()">Gửi ký</div>
+  </button>
+  <button
+    class="btn btn-success ms-2"
+    (click)="sendToSign('LOCALTION')"
+    [disabled]="!isPdfLoaded"
+  >
+    Gửi ký
+  </button>
+  <button
+    type="button"
+    class="btn btn-success ms-2 me-2"
+    [disabled]="!isPdfLoaded"
+    data-bs-toggle="modal"
+    data-bs-target="#exampleModal"
+  >
+    Gửi ký với ký tự
+  </button>
 </div>
 <ngx-extended-pdf-viewer
   #pdfViewer
   [base64Src]="base64Signfile"
-  (pdfLoaded)="evtLog($event)"
+  (pdfLoaded)="onPdfLoaded($event)"
   [height]="'auto'"
   [textLayer]="false"
   [showHandToolButton]="false"
@@ -30,5 +49,61 @@
   [filenameForDownload]="'Public Domain.pdf'"
   (pageRendered)="onPdfPagesRendered($event)"
   [(page)]="curPage"
+  [showUnverifiedSignatures]="true"
 >
 </ngx-extended-pdf-viewer>
+
+<!-- Modal -->
+<div
+  class="modal fade"
+  id="exampleModal"
+  tabindex="-1"
+  aria-labelledby="exampleModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group mb-3 w-100">
+          <span class="input-group-text" id="basic-addon1">Chuỗi ký tự</span>
+          <input
+            type="text"
+            aria-describedby="basic-addon1"
+            [(ngModel)]="signer.LocationKey"
+            class="form-control"
+          />
+        </div>
+        <div class="input-group mb-3 w-100">
+          <span class="input-group-text" id="basic-addon1">Trang</span>
+          <input
+            type="number"
+            [(ngModel)]="signer.PageIndex"
+            class="form-control"
+            aria-describedby="basic-addon1"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Close
+        </button>
+        <div
+          class="btn btn-success ms-2"
+          data-bs-dismiss="modal"
+          (click)="sendToSign('POSITION')"
+        >
+          Gửi ký
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

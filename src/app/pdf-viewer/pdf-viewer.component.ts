@@ -1,8 +1,18 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import Konva from 'konva';
 import { NgxExtendedPdfViewerComponent } from 'ngx-extended-pdf-viewer';
-import { SignFile } from '../model/signfile.model';
 import { SignArea } from '../model/signArea.model';
+import { SignFile } from '../model/signFile.model';
+import { Signer } from '../model/signer.model';
+import { ApiService } from '../api.service';
 @Component({
   selector: 'pdf-viewer',
   templateUrl: './pdf-viewer.component.html',
@@ -10,17 +20,26 @@ import { SignArea } from '../model/signArea.model';
 })
 export class PdfViewerComponent implements OnInit, AfterViewInit {
   @ViewChild('pdfViewer') pdfViewer!: NgxExtendedPdfViewerComponent;
+  @Input() signer!: Signer;
+  @Input() isLoading = false;
+  @Output() isLoadingChange = new EventEmitter<boolean>();
 
+  private signMethod = 'sign?t=123456';
+  private exPxToCm = 0.0264583333;
   lstStage: Konva.Stage[] = [];
   base64Signfile = '';
+  isPdfLoaded = false;
 
   transform!: Konva.Transformer;
   curStage!: Konva.Stage;
   curPage = 1;
   curItem: any;
   menu: HTMLElement | null;
-  constructor() {
+  apiService!: ApiService;
+
+  constructor(apiService: ApiService) {
     this.menu = null;
+    this.apiService = apiService;
   }
   ngOnInit(): void {
     this.transform = new Konva.Transformer();
@@ -120,6 +139,8 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
         let konvaImg = new Konva.Image({
           x: x,
           y: y,
+          scaleX: 1,
+          scaleY: 1,
           image: img,
           width: 200,
           heigh: 100,
@@ -139,33 +160,59 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
     return reader;
   }
 
-  evtLog(evt: any) {
-    console.log('evt log', evt);
+  onPdfLoaded(evt: any) {
+    if (evt.pagesCount > 0) this.isPdfLoaded = true;
   }
 
-  sendToSign() {
+  sendToSign(type: 'POSITION' | 'LOCALTION') {
+    this.signer.TypeSign = type;
     let signFile = new SignFile();
-    // Image
-    this.lstStage.forEach((stage) => {
-      let layer = stage.getLayers()[0];
-      layer.getChildren().forEach((node) => {
-        if (node instanceof Konva.Image) {
-          const konvaImg = node as Konva.Image;
-          const item = node.image();
-          let img = item as HTMLImageElement;
-          let area: SignArea = {
-            page: Number.parseInt(stage.id().replace('page', '')),
-            x: konvaImg.x(),
-            y: konvaImg.y(),
-            width: konvaImg.width() * konvaImg.scaleX(),
-            height: konvaImg.height() * konvaImg.scaleY(),
-            base64: img.src,
-          };
-          signFile.signAreas.push(area);
-        }
-      });
-    });
 
+    switch (type) {
+      case 'LOCALTION': {
+        // Image
+        this.lstStage.forEach((stage) => {
+          let layer = stage.getLayers()[0];
+          layer.getChildren().forEach((node) => {
+            if (node instanceof Konva.Image) {
+              const konvaImg = node as Konva.Image;
+              const item = node.image();
+              let img = item as HTMLImageElement;
+              let area: SignArea = {
+                page: Number.parseInt(stage.id().replace('page', '')),
+                x: konvaImg.position().x,
+                y: konvaImg.position().y,
+                width: konvaImg.width() * konvaImg.scaleX(),
+                height: konvaImg.height() * konvaImg.scaleY(),
+                base64: img.src,
+              };
+              this.signer.ImageSignBase64 = this.getPlaintextFromBase64(
+                area.base64
+              );
+              this.signer.PositionX = `${
+                (area.x - area.width / 2) * this.exPxToCm
+              }`;
+              // let stageHeigh = stage.height();
+              // this.signer.PositionY = `${
+              //   (stageHeigh - area.y - area.height) * this.exPxToCm
+              // }`;
+
+              this.signer.PositionX = '14';
+              this.signer.PositionY = '2';
+              this.signer.WithImg = `${area.width * this.exPxToCm}`;
+              this.signer.HeightImg = `${area.height * this.exPxToCm}`;
+            }
+          });
+        });
+        break;
+      }
+      case 'POSITION': {
+        console.log('sign POSITION', this.signer);
+        break;
+      }
+    }
+    this.isLoading = true;
+    this.isLoadingChange.emit(this.isLoading);
     let blob = this.pdfViewer.service.getCurrentDocumentAsBlob();
     blob.then((blob) => {
       if (blob == null) return;
@@ -173,9 +220,19 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
       reader.readAsDataURL(blob);
 
       reader.onloadend = () => {
-        signFile.base64 = reader.result as string;
-        console.log(signFile);
+        this.signer.FileBase64 = this.getPlaintextFromBase64(reader.result);
+        this.signer.Sw = 'HRM';
+        this.apiService.post(this.signMethod, this.signer).subscribe((res) => {
+          this.base64Signfile = res.FileBase64;
+          console.log('sign', res);
+          this.isLoading = false;
+          this.isLoadingChange.emit(this.isLoading);
+        });
       };
     });
+  }
+
+  getPlaintextFromBase64(base64: any) {
+    return base64.split(',')[1];
   }
 }

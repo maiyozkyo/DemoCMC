@@ -1,7 +1,19 @@
 <div
+  class="w-100 h-100 d-flex justify-content-center align-items-center"
+  style="z-index: 9999; opacity: 0.5"
+  *ngIf="isLoading"
+>
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+<div class="d-flex justify-content-start" *ngIf="step > 0">
+  <button class="btn btn-secondary" (click)="back()">Trở lại</button>
+</div>
+<div
   class="d-flex justify-content-center align-items-center"
   style="width: 100vw; height: 100vh"
-  *ngIf="step < 4"
+  *ngIf="step < 5"
 >
   <div class="d-flex" [ngSwitch]="step">
     <div class="d-flex" *ngSwitchCase="0">
@@ -21,23 +33,43 @@
     <ng-container *ngSwitchCase="2" [ngTemplateOutlet]="faceMatchingTmpl">
     </ng-container>
 
-    <ng-container *ngSwitchCase="3" [ngTemplateOutlet]="useExistAccount">
+    <ng-container *ngSwitchCase="3" [ngTemplateOutlet]="registerConfirmTmpl">
+    </ng-container>
+
+    <ng-container *ngSwitchCase="4" [ngTemplateOutlet]="useExistAccount">
     </ng-container>
   </div>
 </div>
 
-<ng-container *ngIf="step == 4">
-    <ng-container [ngTemplateOutlet]="pdf"></ng-container>
+<ng-container *ngIf="step == 5">
+  <ng-container [ngTemplateOutlet]="pdf"></ng-container>
 </ng-container>
 
 <ng-template #registerTmpl>
-  <div class="d-flex flex-column">
+  <div class="d-flex flex-column" [formGroup]="fgSigner">
+    <div class="d-flex justify-content-center mb-5">
+      <input
+        type="text"
+        class="rounded"
+        placeholder="Nhập CCCD"
+        formControlName="IdentificationNumber"
+      />
+      <button
+        class="btn btn-primary ms-2"
+        (click)="sendToRegis()"
+        [disabled]="!this.fgSigner.valid"
+      >
+        Gửi
+      </button>
+    </div>
     <label for="faceImg">Chọn hình mặt trước CCCD</label>
     <input
       type="file"
       name="faceImg"
       accept="image/*"
+      formControlName="ImageBase64"
       (change)="onUploadCardID($event)"
+      [disabled]="!fgSigner.valid"
     />
   </div>
 </ng-template>
@@ -54,6 +86,18 @@
   </div>
 </ng-template>
 
+<ng-template #registerConfirmTmpl>
+  <div class="d-flex flex-column">
+    <label for="signImg">Chọn hình chữ ký</label>
+    <input
+      type="file"
+      name="signImg"
+      accept="image/*"
+      (change)="onRegisterConfirm($event)"
+    />
+  </div>
+</ng-template>
+
 <ng-template #useExistAccount>
   <div class="d-flex flex-column" [formGroup]="fgSigner">
     <div class="d-flex justify-content-center">
@@ -61,7 +105,7 @@
         type="text"
         class="rounded"
         placeholder="Nhập CCCD"
-        formControlName="id"
+        formControlName="IdentificationNumber"
       />
       <div class="btn btn-primary ms-1" (click)="onFindCardID()">Tìm kiếm</div>
     </div>
@@ -69,5 +113,5 @@
 </ng-template>
 
 <ng-template #pdf>
-  <pdf-viewer></pdf-viewer>
+  <pdf-viewer [signer]="signer" [(isLoading)]="isLoading"></pdf-viewer>
 </ng-template>

@@ -19,7 +19,7 @@ export class Signer {
   LocationKey = '';
   PositionX = '';
   PositionY = '';
-  WithImg = '0';
+  WithImg = '1';
   HeightImg = '1';
   PageIndex = '1';
   Bottompos = '-1';

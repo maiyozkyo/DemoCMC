@@ -25,10 +25,12 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
   @Output() isLoadingChange = new EventEmitter<boolean>();
 
   private signMethod = 'sign?t=123456';
-  private exPxToCm = 0.0264583333;
   lstStage: Konva.Stage[] = [];
   base64Signfile = '';
   isPdfLoaded = false;
+  zoomLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5];
+  curZoom = 100;
+  curSignType: 'POSITION' | 'LOCALTION' | 'WithoutImg' = 'LOCALTION';
 
   transform!: Konva.Transformer;
   curStage!: Konva.Stage;
@@ -123,6 +125,7 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
   onAddSignatureImage(evt: any) {
     let stage = this.lstStage.find((c) => c.id() == `page${this.curPage}`);
     if (!stage) return;
+    stage.container().style.zIndex = '10';
     let layers = stage.getLayers();
     console.log(stage._id);
 
@@ -164,11 +167,8 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
     if (evt.pagesCount > 0) this.isPdfLoaded = true;
   }
 
-  sendToSign(type: 'POSITION' | 'LOCALTION') {
-    this.signer.TypeSign = type;
-    let signFile = new SignFile();
-
-    switch (type) {
+  sendToSign() {
+    switch (this.curSignType) {
       case 'LOCALTION': {
         // Image
         this.lstStage.forEach((stage) => {
@@ -189,25 +189,31 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
               this.signer.ImageSignBase64 = this.getPlaintextFromBase64(
                 area.base64
               );
-              this.signer.PositionX = `${
-                (area.x - area.width / 2) * this.exPxToCm
+              let exPxToCm = 2.54 / 96;
+              let ratio = (exPxToCm * 100) / this.curZoom;
+              this.signer.PositionX = `${area.x * ratio}`;
+              let stageHeigh = stage.height();
+              this.signer.PositionY = `${
+                (stageHeigh - area.y - area.height) * ratio
               }`;
-              // let stageHeigh = stage.height();
-              // this.signer.PositionY = `${
-              //   (stageHeigh - area.y - area.height) * this.exPxToCm
-              // }`;
 
-              this.signer.PositionX = '14';
-              this.signer.PositionY = '2';
-              this.signer.WithImg = `${area.width * this.exPxToCm}`;
-              this.signer.HeightImg = `${area.height * this.exPxToCm}`;
+              this.signer.WithImg = `${area.width * ratio}`;
+              this.signer.HeightImg = `${area.height * ratio}`;
+              this.signer.PageIndex = `${area.page}`;
             }
           });
         });
+        this.signer.TypeSign = 'LOCALTION';
+        break;
+      }
+      case 'WithoutImg': {
+        this.signer.TypeSign = 'LOCALTION';
+        this.signer.ImageSignBase64 = '';
         break;
       }
       case 'POSITION': {
         console.log('sign POSITION', this.signer);
+        this.signer.TypeSign = 'POSITION';
         break;
       }
     }
@@ -234,5 +240,27 @@ export class PdfViewerComponent implements OnInit, AfterViewInit {
 
   getPlaintextFromBase64(base64: any) {
     return base64.split(',')[1];
+  }
+
+  changeSignType(type: 'POSITION' | 'LOCALTION' | 'WithoutImg') {
+    this.curSignType = type;
+    switch (this.curSignType) {
+      case 'LOCALTION': {
+        this.sendToSign();
+        break;
+      }
+      case 'POSITION': {
+        this.lstStage.forEach(
+          (stage) => (stage.container().style.zIndex = '-1')
+        );
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  evtLog(event: any) {
+    console.log('evt', event, this.curZoom);
   }
 }
